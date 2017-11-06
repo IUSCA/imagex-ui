@@ -17,7 +17,7 @@
                     <a class="btn btn-default" ng-class="{active : scalebar}" ng-click='toggleScalebar()'>
                         <img class="smallbtnicon" src="public/images/icons/ruler.png">
                     </a>
-                    <a class="btn btn-default" ng-class="{active : infooverlay}" ng-click="infooverlay = !infooverlay">
+                    <a class="btn btn-default" ng-class="{active : infooverlay}" ng-click="infooverlay = !infooverlay" ng-disable="arrangement == 'grid'">
                         <img class="smallbtnicon" src="public/images/icons/info.png">
                     </a>
                     <div class="btn-group">

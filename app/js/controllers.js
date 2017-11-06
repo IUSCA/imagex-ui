@@ -373,6 +373,7 @@ myapp.controller('ImagexController', function ($scope, $http, $timeout, $interva
     $scope.gridView = function(){
         //if($scope.arrangement == 'grid') return;
         $scope.arrangement = 'grid';
+        $scope.infooverlay = false;
         console.log(Object.keys($scope.images).length);
         var rows = Math.round(Math.sqrt(Object.keys($scope.images).length));
         console.log("Setting rows to:"+rows);

@@ -829,13 +829,14 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
     $scope.populateM1 = function(){
         var found_filters = [];
         $http({
-            url : appconf.api_url+encodeURI('/exposures?filter[where][name][like]=M1*'),
+            url : appconf.api_url+encodeURI('/exposures?filter={"where": {"name": {"inq": ["M1 r","M1 g","M1 Ha"]}}}'),
             method : 'GET'
         }).then(
             function(res){
                 var onload = {}
                 angular.forEach(res.data, function(value, key){
 
+                    console.log(value.name);
                     if(value.filter == 'CTIO_Ha' && (found_filters.indexOf(value.filter) == -1)){
                         found_filters.push('CTIO_Ha');
                         $scope.demos['3color'].ixids.push(value.id);

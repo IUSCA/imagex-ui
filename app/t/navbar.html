@@ -13,17 +13,17 @@
 
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
                 <ul class="nav navbar-nav">
-                    <li ng-class="{'active': active == 'search'}"><a href="/#!/search">Search</a></li>
-                    <li ng-class="{'active': active == 'demo'}"><a href="/#!/demo">Demo</a></li>
-                    <li ng-class="{'active': active == 'activity'}"><a href="/#!/activity" ng-show="user.roles.indexOf('admin')!=-1">Progress</a></li>
-                    <li ng-class="{'active': active == 'upload'}"><a href="/#!/upload" ng-show="user.roles.indexOf('admin')!=-1">Upload</a></li>
+                    <li ng-class="{'active': activeNav == 'search'}"><a href="/#!/search">Search</a></li>
+                    <li ng-class="{'active': activeNav == 'demo'}"><a href="/#!/demo">Demo</a></li>
+                    <li ng-class="{'active': activeNav == 'activity'}"><a href="/#!/activity" ng-show="user.roles.indexOf('admin')!=-1">Progress</a></li>
+                    <li ng-class="{'active': activeNav == 'upload'}"><a href="/#!/upload" ng-show="user.roles.indexOf('guest')==-1">Upload</a></li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-fw fa-user-circle-o"></i> {{user.username}} <span class="caret"></span></a>
                         <ul class="dropdown-menu" role="menu">
                             <li><a ng-click="logout()"><i class="fa fa-fw fa-sign-out"></i> Logout</a></li>
-                            <li ng-class="{'active': active == 'users'}" ng-show="user.roles.indexOf('admin')!=-1"><a href="/#!/users"><i class="fa fa-fw fa-users"></i> Users</a></li>
+                            <li ng-class="{'active': activeNav == 'users'}" ng-show="user.roles.indexOf('admin')!=-1"><a href="/#!/users"><i class="fa fa-fw fa-users"></i> Users</a></li>
                         </ul>
                     </li>
                 </ul>

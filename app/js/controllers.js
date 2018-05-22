@@ -614,22 +614,33 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
             }, 5000);
 
     $scope.$on('$routeChangeStart',function(){
-        if(promise)
+        if($scope.watchers['checkForNew'])
             $interval.cancel($scope.watchers['checkForNew']);
     });
 });
 
 myapp.controller('SigninController', function ($scope, $http, $location, toaster, appconf, AuthService) {
 
+    $scope.showRegister = false;
     $scope.guestlogin = function() {
         $scope.username = 'guest@imagex.sca';
         $scope.password = 'demo';
         $scope.login();
     }
 
+    $scope.regform = {};
+    $scope.submitted = false;
+    $scope.regform.fields = {
+        password1 : '',
+        password2 : '',
+        newemail : '',
+        name: ''
+    }
+
+
     $scope.login = function() {
         if ($scope.username == "") {
-            toaster.pop('error', 'Invalid or empty username', "Please enter a valid email");
+            toaster.pop('error', 'Invalid or empty email', "Please enter your email address or register for an account.");
         } else {
             AuthService.login($scope.username, $scope.password, function (res) {
                 if (res) {
@@ -646,6 +657,41 @@ myapp.controller('SigninController', function ($scope, $http, $location, toaster
             });
         }
     };
+
+    $scope.register = function() {
+        console.log($scope.regform.fields);
+        $scope.submitted = true;
+        var valid = true;
+        console.log($scope.regform.fields.newemail);
+        if($scope.regform.fields.newemail == undefined) {
+            toaster.pop('error', 'Invalid email', "You must enter a valid email address");
+            valid = false;
+        }
+
+        if ($scope.regform.fields.password1 !== $scope.regform.fields.password2 || $scope.regform.fields.password1 == ''){
+            toaster.pop('error', 'Invalid passwords', "Please enter matching passwords to register");
+            valid = false;
+        }
+
+        if(valid){
+            $http({
+                method: "POST",
+                url: appconf.api_url+"/users",
+                data: {
+                    username: $scope.regform.fields.name,
+                    email: $scope.regform.fields.newemail,
+                    password: $scope.regform.fields.password1
+                }
+            }).then(function(res) {
+                toaster.pop('success', 'Registered!', res.data);
+                $scope.showRegister = false;
+            }, function(err) {
+                toaster.pop('error', 'Registration Failed!', err.data.error.message);
+                console.log(err);
+            });
+        }
+    }
+
 });
 
 myapp.controller('UserController', function ($scope, $http, $location, toaster, appconf) {
@@ -684,12 +730,14 @@ myapp.controller('UploadController', function ($scope, $http, FileUploader, toas
     $scope.uploader = undefined;
 
     $scope.renderupload = false;
+    var user = JSON.parse(localStorage.getItem(appconf.user));
+    console.log(user);
     AuthService.getRoles(function(roles){
         $scope.roles = roles;
 
 
         var uploader = $scope.uploader = new FileUploader({
-            url: 'upload/'+$scope.roles[0]
+            url: 'upload/'+$scope.roles[0]+'/'+user.id
         });
 
         // FILTERS
@@ -782,6 +830,15 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
             img: 'public/images/demo/3color.png',
             arrangement: 'grid',
             desc: 'Three images of the M1 Crab Nebula were taken in g`, r`, and H-alpha. They are assigned one of three colors (RGB) and composited using the "light" option.  Click on the WCS view button (globe) to align the images. ',
+            onload: function(){return {}}
+        },
+        'DECam' : {
+            title: 'DECam',
+            //ixids: ['59ed00f4327cd50010741ef4','59ed01cb327cd50010741ef6','59ed02c8327cd50010741ef8'],
+            ixids : [],
+            img: 'public/images/demo/3color.png',
+            arrangement: 'wcs',
+            desc: 'DECam Demo ',
             onload: function(){return {}}
         },
         'night' : {
@@ -884,8 +941,26 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
             });
     };
 
+    $scope.populateDE = function(){
+        $http({
+            url : appconf.api_url+encodeURI('/exposures?filter={"where": {"name": {"like": "DES0*"}}}'),
+            method : 'GET'
+        }).then(
+            function(res){
+                angular.forEach(res.data, function(value, key){
+                    //$scope.images[value.id] = [value.ra0, value.dec0, value.pixelscale, value.width, value.height, value.filter, value.header];
+                    $scope.demos.DECam.ixids.push(value.id);
+                });
+            },
+            function(err){
+                console.dir(err);
+            });
+    };
+
     $scope.populate();
     $scope.populateM1();
+    $scope.populateDE();
+
 
     $scope.activedemo = false;
     $scope.onload = undefined;
@@ -901,5 +976,36 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
         var ix = $compile( demoStr )( $scope );
 
         angular.element($("#demoTarget")).append(ix);
+    };
+});
+
+myapp.directive('passwordStrength', function() {
+    return {
+        scope: {
+            password: "=password",
+
+            //optional attributes to make password more secure
+            profile: "=profile",
+            user: "=user",
+        },
+        templateUrl: 't/passwordstrength.html',
+        link: function(scope, element, attributes) {
+            scope.password_strength = {};
+            scope.$watch('password', function(newv, oldv) {
+                if(newv) {
+                    //gather strings that we don't want user to use as password (like user's own fullname, etc..)
+                    var used = [];
+                    if(scope.profile) used.push(scope.profile.fullname);
+                    if(scope.user) {
+                        used.push(scope.user);
+                    }
+
+                    console.log(used);
+                    //https://blogs.dropbox.com/tech/2012/04/zxcvbn-realistic-password-strength-estimation/
+                    var st = zxcvbn(newv, used);
+                    scope.password_strength = st;
+                }
+            });
+        }
     };
 });

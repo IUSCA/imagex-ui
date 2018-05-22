@@ -103,6 +103,7 @@ myapp.factory('TokenService', function($http){
     }
 });
 
+
 myapp.filter('bytes', function() {
     return function(bytes, precision) {
         if (isNaN(parseFloat(bytes)) || !isFinite(bytes)) return '-';
@@ -146,13 +147,11 @@ myapp.directive('navbar', function() {
     return {
         restrict: "E",
         replace: true,
-        scope: {
-            active: '@'
-        },
         templateUrl: 't/navbar.html',
-        controller: ['$scope', '$location','appconf', 'AuthService', 'toaster', function ($scope, $location, appconf, AuthService, toaster) {
+        controller: ['$scope', '$rootScope', '$location','appconf', 'AuthService', 'toaster', function ($scope, $rootScope, $location, appconf, AuthService, toaster) {
             $scope.user = AuthService.user();
             $scope.title = appconf.title;
+            $scope.active = $rootScope.activeNav;
             $scope.logout = function() {
                 AuthService.logout(function(res){
                     console.dir(res);
@@ -252,34 +251,40 @@ myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
     when('/search', {
             templateUrl: 't/search.html',
             controller: 'SearchController',
-            requiresLogin: true
+            requiresLogin: true,
+            nav: 'search'
         })
         .when('/activity', {
             templateUrl: 't/activity.html',
             controller: 'ActivityController',
             requiresLogin: true,
-            requiresAdmin: true
+            requiresAdmin: true,
+            nav: 'activity'
         })
         .when('/signin', {
             templateUrl: 't/signin.html',
-            controller: 'SigninController'
+            controller: 'SigninController',
+            nav: 'signin'
         })
         .when('/upload', {
             templateUrl: 't/upload.html',
             controller: 'UploadController',
             requiresLogin: true,
-            requiresAdmin: true
+            noGuest : true,
+            nav: 'upload'
         })
         .when('/users', {
             templateUrl: 't/users.html',
             controller: 'UserController',
             requiresLogin: true,
-            requiresAdmin: true
+            requiresAdmin: true,
+            nav: 'users'
         })
         .when('/demo', {
             templateUrl: 't/demo.html',
             controller: 'DemoController',
-            requiresLogin: true
+            requiresLogin: true,
+            nav: 'demo'
         })
         .otherwise({
             redirectTo: '/signin'
@@ -287,6 +292,7 @@ myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
 }]).run(['$rootScope', '$location', 'toaster', 'jwtHelper', 'appconf', 'AuthService', function($rootScope, $location, toaster, jwtHelper, appconf, AuthService) {
     $rootScope.$on("$routeChangeStart", function(event, next, current) {
         //redirect to /signin if user hasn't authenticated yet
+        $rootScope.activeNav = next.nav;
         if(next.requiresLogin) {
             var authToken = AuthService.token();
             var today = new Date();
@@ -298,14 +304,23 @@ myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
                 return;
             }
 
+            var user = AuthService.user();
             if(next.requiresAdmin) {
-                var user = AuthService.user();
                 if(user.roles == undefined || user.roles.indexOf('admin') == -1) {
                     toaster.warning("You are not authorized to access that location");
                     event.preventDefault();
                 }
             }
+
+            if(next.noGuest) {
+                if(user.roles.indexOf('guest') != -1) {
+                    toaster.warning("You must register first to access this feature");
+                    event.preventDefault();
+                }
+            }
         }
+
+
 
     });
 }]);

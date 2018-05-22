@@ -14,7 +14,7 @@ var logger = new winston.Logger(config.logger.winston);
 
 var storage = multer.diskStorage({ //multers disk storage settings
     destination: function (req, file, cb) {
-        var dir = './uploads/'+req.params.group;
+        var dir = './uploads/'+req.params.group+'/'+req.params.id;
         if (!fs.existsSync(dir)){
             fs.mkdirSync(dir);
         }
@@ -69,7 +69,7 @@ module.exports = function (app) {
 
 
     /** API path that will upload the files */
-    app.post('/upload/:group', function(req, res) {
+    app.post('/upload/:group/:id', function(req, res) {
         upload(req,res,function(err){
             if(err){
                 res.json({error_code:1,err_desc:err});

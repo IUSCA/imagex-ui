@@ -18,7 +18,7 @@ angular.module('app.config', [])
 
     api_url: '/imagex-api/api',
 
-    tile_load_limit: 60
+    tile_load_limit: 140
     });
 
 

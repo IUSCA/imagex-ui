@@ -17,8 +17,10 @@
     <link rel="stylesheet" href="public/css/imagex.css">
 </head>
 <body ng-cloak>
+<navbar ng-if="$root.activeNav !== 'signin'"></navbar>
 <toaster-container toaster-options="{'position-class': 'toast-bottom-right', 'close-button': {'toast-error': false}}"></toaster-container>
 <ng-view></ng-view><!-- <ng-view/> will cause route looping-->
+<ng-include src="'t/footer.html'" ng-if="$root.activeNav !== 'signin'"></ng-include>
 
 <script src="node_modules/jquery/dist/jquery.min.js"></script><!--bootstrap requires jquery-->
 <script src="node_modules/angular/angular.min.js"></script>

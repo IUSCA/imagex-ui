@@ -1,0 +1,47 @@
+<div class='form-group'>
+    <label for='{{field.label}}' class='col-sm-2 control-label'>{{field.label}}<br><small>{{field.units}}</small></label>
+    <div class='col-sm-4 col-sm-offset-1' ng-if='field.type == "text"'>
+        <input id='{{field.label}}' type='text' class='form-control' ng-model='field.value' placeholder='{{field.placeholder}}'/>
+    </div>
+    <div class='col-sm-4 col-sm-offset-1' ng-if='field.type == "range"'>
+        <div class="input-group">
+        <input class="form-control input-sm" ng-model="field._min" type="number" placeholder="">
+        <span class="input-group-addon input-sm">:</span>
+        <input class="form-control input-sm" ng-model="field._max" type="number" placeholder="">
+
+        </div>
+    </div>
+    <div class='col-sm-6 col-sm-offset-1' ng-if='field.type == "dateRange"'>
+        <div class="input-group">
+                <input type="text"
+                       class="form-control"
+                       datepicker-popup="{{dateformat}}"
+                       ng-model="field._min"
+                       is-open="field.min_opened"
+                       min-date="minDate"
+                       max-date="maxDate"
+                       datepicker-options="dateOptions"
+                       date-disabled="disabled(date, mode)"
+                       close-text="Close" />
+            <span class="input-group-btn">
+                <button type="button" class="btn btn-default" ng-click="dateopen($event, field, 'min_opened')">
+                <i class="fa fa-fw fa-calendar"></i></button>
+                </span>
+            <span class="input-group-addon">:</span>
+                <input type="text"
+                       class="form-control"
+                       datepicker-popup="{{dateformat}}"
+                       ng-model="field._max"
+                       is-open="field.max_opened"
+                       min-date="minDate"
+                       max-date="maxDate"
+                       datepicker-options="dateOptions"
+                       date-disabled="disabled(date, mode)"
+                       close-text="Close" />
+            <span class="input-group-btn">
+                <button type="button" class="btn btn-default" ng-click="dateopen($event, field, 'max_opened')">
+                <i class="fa fa-fw fa-calendar"></i></button>
+                </span>
+        </div>
+    </div>
+</div>

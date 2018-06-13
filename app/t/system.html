@@ -1,0 +1,58 @@
+
+<div class="container-fluid main-container">
+    <div class="header">
+        <h2><span class="fa-stack fa-lg">
+              <i class="fa fa-circle fa-stack-2x site-color"></i>
+              <i class="fa fa-server fa-stack-1x fa-inverse"></i>
+            </span></i> System Status</h2>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <i class="fa fa-fw fa-hdd-o text-info"></i> File System <i class="fa fa-refresh fa-spin fa-fw" ng-if="loading"></i>
+        </div>
+        <div class="panel-body">
+            <h4>273.2 GB <small>used</small></h4>
+            <h4>180.8 GB <small>remaining</small></h4>
+            <div class="progress progress-large">
+                <div class="progress-bar progress-bar-success" style="width: 25%">Image Tiles <small>100.2 GB</small></div>
+                <div class="progress-bar progress-bar-warning" style="width: 45%">Images <small>178.3 GB</small></div>
+                <div class="progress-bar progress-bar-danger" style="width: 10%">Docker <small>122.4 GB</small></div>
+                <div class="progress-bar progress-bar-default" style="width: 20%">Free <small>180.8 GB</small></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <i class="fa fa-fw fa-archive text-info"></i> Docker Containers <i class="fa fa-refresh fa-spin fa-fw" ng-if="loading"></i>
+        </div>
+        <div class="panel-body">
+            <table class="table table-hover table-condensed">
+                <thead>
+                <th></th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Created <small>UTC</small></th>
+                <th>IP <small>internal</small></th>
+                <th>Ports</th>
+                </thead>
+                <tr ng-repeat="c in containers">
+                    <td>
+                        <i class="fa fa-fw fa-check text-success" ng-if="c.State == 'running'"></i>
+                        <i class="fa fa-fw fa-plus-circle text-info" ng-if="c.State == 'created'"></i>
+                        <i class="fa fa-fw fa-hourglass-start text-info" ng-if="c.State == 'restarting'"></i>
+                        <i class="fa fa-fw fa-times-circle text-danger" ng-if="c.State == 'exited'"></i>
+                        <i class="fa fa-fw fa-pause-circle text-warning" ng-if="c.State == 'paused'"></i>
+                        <i class="fa fa-fw fa-ban text-danger" ng-if="c.State == 'dead'"></i>
+                    </td>
+                    <td>{{c.Labels['com.docker.compose.service']}}</td>
+                    <td>{{c.Status}}</td>
+                    <td>{{c.Created * 1000 | date:'yyyy-MM-dd HH:mm:ss':'UTC'}}</td>
+                    <td>{{c.NetworkSettings.Networks.imgxnet.IPAddress}}</td>
+                    <td><span ng-repeat="p in c.Ports">{{p.PrivatePort}} </span></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>

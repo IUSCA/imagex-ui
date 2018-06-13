@@ -1,0 +1,40 @@
+<div class='form-group'>
+    <label for='{{field.label}}' class='col-sm-2 control-label'>Cone Search</label>
+    <div class='col-sm-7 col-sm-offset-1'>
+        <div class="row">
+            <div class="form-inline">
+                <select class="form-control input-sm" id="coordType" name="coordType" ng-model="coordSystem.system" ng-options="f.system as f.label for f in coordSystems" ng-change="change_system();"></select>
+                <select class="form-control input-sm" id="epoch" name="epoch" ng-model="epoch.id" ng-options="e.id as e.name for e in epochs" ng-show="coordSystem.epochs" ng-change="change_epoch();"></select>
+                <select class="form-control input-sm" id="coordDisplay" name="coordDisplay" ng-model="coordDisplay.id" ng-options="f.id as f.name for f in coordDisplays" ng-change="change_display();"></select>
+
+            </div>
+            <br>
+            <div class="form-inline">
+                <div class="input-group">
+                    <span class="input-group-addon input-sm coordlabel">{{coordSystem.ralabel}}</span>
+                    <span class="input-group-addon input-sm coordunit" ng-bind-html='coordSystem.raunit | unsafe'></span>
+                    <input class="form-control input-sm" id="ra" name="ra" type="text" placeholder="" ng-model='posd.ra' ng-required="true" ng-blur="update_coords();">
+                </div>
+
+                <div class="input-group">
+                    <span class="input-group-addon input-sm coordlabel">{{coordSystem.declabel}}</span>
+                    <span class="input-group-addon input-sm coordunit" ng-bind-html='coordSystem.decunit | unsafe'></span>
+                    <input class="form-control input-sm" id="dec" name="dec" type="text" placeholder="" ng-model='posd.dec' ng-required="true" ng-blur="update_coords();">
+                </div>
+            </div>
+            <br>
+            <div class="input-group" style="width: 50%">
+                <span class="input-group-addon input-sm">Radius</span>
+                <input name="radius" class="form-control input-sm" ng-model="form.coords.radius" ng-required="true" type="text" placeholder="">
+                <div class="input-group-btn">
+                    <button class="btn btn-default btn-sm dropdown-toggle radius-btn" data-toggle="dropdown">{{form.coords.radius_unit}} <span class="caret"></span></button>
+                    <ul class="dropdown-menu radius-menu pull-right">
+                        <li><a href="#" ng-click="posq.radius_unit = 'degree';">degree</a></li>
+                        <li><a href="#" ng-click="posq.radius_unit = 'arcmin';">arcmin</a></li>
+                        <li><a href="#" ng-click="posq.radius_unit = 'arcsec';">arcsec</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

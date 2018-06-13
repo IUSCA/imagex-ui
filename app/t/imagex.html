@@ -48,7 +48,7 @@
                         <!--<i class="fa fa-fw fa-random text-success" ng-click="colorize(value); viewer.forceRedraw()"></i>-->
                     </td>
 
-                    <td><em>{{images[key].header['OBJECT']}}</em></td>
+                    <td><em>{{images[key].header['OBJECT'] !== undefined ? images[key].header['OBJECT'] : images[key].header['TILENAME']}}</em></td>
                 </tr>
                 <tr class="animate-show-hide" ng-repeat-end ng-show="model.activeRow == key;">
                     <td colspan="2">

@@ -1,9 +1,9 @@
 'use strict';
 
-myapp.controller('SearchController', function ($scope, $http, $filter, $modal, appconf, jwtHelper, toaster) {
-
-
+myapp.controller('SearchController', function ($scope, $http, $filter, $compile, $modal, $window, appconf, jwtHelper, toaster) {
+    
     $scope.title = "ImageX";
+    $scope.noResults = false;
     $scope.formData = {};
     $scope.exposures = [];
     $scope.headerkey;
@@ -12,67 +12,178 @@ myapp.controller('SearchController', function ($scope, $http, $filter, $modal, a
     $scope.searchobj;
     $scope.searchop;
 
+
+    $scope.dlImage = function(imageid, filename){
+        $scope.getToken(imageid, function(token){
+            var source = "/imagexdata/files/"+imageid+"/"+filename+"?at="+token;
+            $window.location.assign(source);
+        });
+    };
+
+
+    $scope.getToken = function(eid, cb) {
+        $http({
+            url: '/tokennew/'+eid
+        }).then(
+            function(res){
+                cb(res.data)
+            },
+            function(err){
+                console.dir(err);
+            });
+    };
+
+
+    $scope.currentPage = 1;
+
+    $scope.setPage = function (pageNo) {
+        $scope.currentPage = pageNo;
+    };
+
+    $scope.pageChanged = function() {
+        console.log('Page changed to: ' + $scope.currentPage);
+    };
+
+    $scope.entryLimit = 20;
+
     $scope.searchform = {
-        object: '',
-        minDate: '',
-        maxDate: '',
-        ra: '',
-        dec: '',
-        radius: 1.0,
-        radscale: 'degree',
-        filter: '',
-        obsdate: '',
+        // object: '',
+        // minDate: '',
+        // maxDate: '',
+        // ra: '',
+        // dec: '',
+        // radius: 1.0,
+        // radscale: 'degree',
+        // filter: '',
+        // obsdate: '',
+    };
+
+    $scope.insertSearchElement = function(key, entry) {
+        var target = angular.element(document.getElementById('elTarget'));
+        $scope.searchform[key] = entry;
+        var compilestr = "<search-element field='searchform[\""+key+"\"]'></search-element>";
+        console.log(compilestr);
+        target.append($compile(compilestr)($scope));
+    };
+
+    $scope.getDefaultFields = function() {
+        $http({
+            method: "GET",
+            url: appconf.new_api + '/searches?active=1'
+        }).then(function(res) {
+            console.log(res.data);
+            res.data.fields.forEach(function(f){
+                $scope.insertSearchElement(f.field, f);
+            });
+        }, function(err) {
+            console.dir(err);
+        });
+    };
+
+    $scope.getDefaultFields();
+
+    $scope.resetForm = function() {
+        angular.forEach($scope.searchform, function(v, k){
+            console.log(v, k);
+            if(k !== 'coords'){
+                v._v = '';
+                v._min = '';
+                v._max = '';
+            } else {
+                v.ra = '';
+                v.dec = '';
+                v.radius = '';
+            }
+        });
+        $scope.selected = 0;
+        $scope.exposures = [];
     };
 
     $scope.getexposures = function() {
         $scope.selected = 0;
         $scope.exposures = [];
+        $scope.noResults = false;
+        console.log($scope.searchform);
 
 
-        var searchStr = "/exposures?";
-        if($scope.searchform.object !== ''){
-            searchStr = searchStr + "filter[where][name][like]="+$scope.searchform.object+"*&";
+        var url = appconf.new_api + "/headers/find";
+        var c = {};
+        var q = {'$and':[]}
+
+        if($scope.searchform.coords.ra !== '' && $scope.searchform.coords.dec !== '' && $scope.searchform.coords.radius !== ''){
+            c = $scope.searchform.coords;
         }
-        if($scope.searchform.filter !== ''){
-            searchStr = searchStr + "filter[where][filter][regexp]=/"+encodeURIComponent($scope.searchform.filter)+"/i&";
+
+        angular.forEach($scope.searchform, function(value, key){
+            if(key == 'coords'){
+                return; //skip coords, push in manually
+            }
+            var field = 'keys.'+key;
+            var entry = {}
+            if(value.type == 'range' || value.type == 'dateRange') {
+                console.log(value._min);
+                if(value._min == '' || value._min == undefined) return;
+                entry[field] = {'$gt' : value._min, '$lt': value._max}
+
+                // searchStr = searchStr + "filter[where]["+key+"][gt]="+value._min+"&";
+                // searchStr = searchStr + "filter[where]["+key+"][lt]="+value._max+"&";
+            } else {
+                if(value.value == '' || value.value == undefined) return;
+                entry[field] = {'$regex': value.value, '$options':'i'}
+            }
+            q.$and.push(entry);
+        });
+
+        if(q.$and.length == 0) {
+            q = {};
         }
-        if($scope.searchform.obsdate !== ''){
-            var obsdate = $filter('date')($scope.searchform.obsdate, "yyyy-MM-dd");
-            var dateLow = obsdate + 'T00:00:00Z';
-            var dateHigh = obsdate + 'T23:59:59Z';
-            searchStr = searchStr + "filter[where][header.DATE-OBS][between][0]="+dateLow+"&filter[where][header.DATE-OBS][between][1]="+dateHigh;
-        }
-        var url = appconf.api_url+searchStr;
-        console.log(url);
-        $http.get(url).
-        then(function(res) {
+
+        console.log(q);
+
+        // if($scope.searchform.object !== ''){
+        //     searchStr = searchStr + "filter[where][name][like]="+$scope.searchform.object+"*&";
+        // }
+        // if($scope.searchform.filter !== ''){
+        //     searchStr = searchStr + "filter[where][filter][regexp]=/"+encodeURIComponent($scope.searchform.filter)+"/i&";
+        // }
+        // if($scope.searchform.obsdate !== ''){
+        //     var obsdate = $filter('date')($scope.searchform.obsdate, "yyyy-MM-dd");
+        //     var dateLow = obsdate + 'T00:00:00Z';
+        //     var dateHigh = obsdate + 'T23:59:59Z';
+        //     searchStr = searchStr + "filter[where][header.DATE-OBS][between][0]="+dateLow+"&filter[where][header.DATE-OBS][between][1]="+dateHigh;
+        // }
+
+        $http({
+            method: "POST",
+            url: url,
+            data: {
+                q: q,
+                c: c
+            }
+        }).then(function(res) {
+            console.log(res.data);
             $scope.exposures = res.data;
-            angular.forEach($scope.exposures, function(value, key) {
-                value.selected = false;
+            if($scope.exposures.length == 0) {
+                $scope.noResults = true;
+            }
+            angular.forEach(res.data, function(value, key) {
+                value['selected'] = false;
             });
+        }, function(err) {
+            toaster.pop('error', 'Search Failed!', err.data.error.message);
+            console.log(err);
         });
     };
 
-    $scope.today = function() {
-        return new Date();
+
+    $scope.formctrls = {
+        selectall: false
     };
-    $scope.maxdate = $scope.today();
-    $scope.format = 'yyyy-MM-dd';
-
-    $scope.dateopen = function($event) {
-        $event.preventDefault();
-        $event.stopPropagation();
-
-        $scope.opened = true;
-    };
-
-    $scope.selectall = false;
 
     $scope.toggleselectall = function() {
-        console.log("in here");
-        console.log($scope.selectall);
+        console.log(!$scope.formctrls.selectall);
         angular.forEach($scope.exposures, function(value, key) {
-            $scope.exposures[key]['selected'] = $scope.selectall;
+            $scope.exposures[key]['selected'] = !$scope.formctrls.selectall; //WHY IS THIS BACKWARDS!!?!?!?!
         });
         $scope.countselected();
     };
@@ -90,10 +201,23 @@ myapp.controller('SearchController', function ($scope, $http, $filter, $modal, a
         });
     };
 
+    $scope.rmImage = function(id) {
+        $http({
+            method: 'DELETE',
+            url: appconf.new_api + "/headers/"+id
+        }).then(function(res){
+            toaster.success(res.data.status);
+            $scope.exposures = [];
+            $scope.getexposures();
+        }, function(err){
+            toaster.error(err);
+        })
+    };
+
     $scope.viewSelected = function() {
         var exposures = [];
         angular.forEach($scope.exposures, function(value, key) {
-            if(value.selected) { exposures.push(value.id); }
+            if(value.selected) { exposures.push(value.exposureId._id); }
         });
         $modal.open({
             templateUrl: 't/imagexmodal.html', // loads the template
@@ -113,10 +237,11 @@ myapp.controller('SearchController', function ($scope, $http, $filter, $modal, a
     };
 
 
-    $scope.infodump = function (expid) {
+    $scope.infodump = function (exp_idx) {
 
-        var info = $scope.exposures[expid]['header'];
-        var exp = $scope.exposures[expid]['name'];
+        var item = $scope.exposures[exp_idx];
+        var info = item.keys;
+        var exp = item.keys.OBJECT;
         $modal.open({
             templateUrl: 't/infodump.html', // loads the template
             backdrop: true, // setting backdrop allows us to close the modal window on clicking outside the modal window
@@ -144,7 +269,7 @@ myapp.controller('ImagexController', function ($scope, $http, $timeout, $interva
         multi: false
     };
 
-    $scope.model.multi = (JSON.parse($scope.imageids).length > 1);
+    $scope.model.multi = $scope.imageids.length > 1;
     $scope.images = {};
     $scope.wcs = null;
     $scope.scalebar = true;
@@ -231,19 +356,25 @@ myapp.controller('ImagexController', function ($scope, $http, $timeout, $interva
     ];
 
     $scope.getImages = function(cb, cb2){
+            console.log($scope.imageids);
             $http({
                 //url : appconf.api_url+'/exposures?filter[where][name]=0712_lb_-10.2-03.0_ugr.json',
-                url : appconf.api_url+encodeURI('/exposures?filter={"where": {"id": {"inq": '+$scope.imageids+'}}}'),
+                url : appconf.new_api+'/headers/find',
+                data : {
+                    q : {exposureId : {'$in' : $scope.imageids}}
+                },
 //                url : appconf.api_url+'/exposures?filter[where][and][0][name][like]=M1*&filter[where][and][1][pixelscale][lt]=0.12',
-                method : 'GET'
+                method : 'POST'
             }).then(
                 function(res){
+                    console.log(res);
                     angular.forEach(res.data, function(value, key){
 
                         //$scope.images[value.id] = [value.ra0, value.dec0, value.pixelscale, value.width, value.height, value.filter, value.header];
-                        $scope.images[value.id] = value;
+                        $scope.images[value.exposureId._id] = value.exposureId;
+                        $scope.images[value.exposureId._id].header = value.keys;
                         if($scope.pixelscale === undefined){
-                            $scope.pixelscale = value.pixelscale;
+                            $scope.pixelscale = value.exposureId.pixelscale;
                             $scope.addScalebar();
                         }
                     });
@@ -257,16 +388,91 @@ myapp.controller('ImagexController', function ($scope, $http, $timeout, $interva
     $scope.scaleImg = function(imageid){
         var image = $scope.images[imageid];
 
+        var rot = 0;
+
         if($scope.wcs == null) {
             $scope.wcs = new WCS.Mapper(image.header);
-            console.log($scope.wcs);
+            var center = $scope.wcs.pixelToCoordinate([image.width / 2.0, image.height / 2.0]);
+        } else {
+
+            var rad2deg = 180.0/Math.PI;
+            var tmp_wcs = new WCS.Mapper(image.header);
+            var center = tmp_wcs.pixelToCoordinate([image.width / 2.0, image.height / 2.0]);
+            var center_xy = $scope.wcs.coordinateToPixel(center.ra, center.dec); //center position on master wcs
+            var center_offsets = {x: (image.width / 2.0) - center_xy.x, y: (image.height / 2.0) - center_xy.y}; //center shift from image coords to master coords
+
+            var c0_real = $scope.wcs.coordinateToPixel(image.ra0, image.dec0);
+            var c =  $scope.wcs.coordinateToPixel(center.ra, center.dec);
+            var c0 =  $scope.wcs.coordinateToPixel(center.ra, center.dec);
+            //console.log("image placed at: ", c);
+
+            var rots = [];
+            image.corners.forEach(function(cor){
+                var cor0 = $scope.wcs.coordinateToPixel(cor[0], cor[1]); //this is where the corner should be on "master" wcs
+                var _c = tmp_wcs.coordinateToPixel(cor[0], cor[1]); //corner location on local wcs
+                var xoff = _c.x - image.width / 2.0;
+                var yoff = _c.y - image.height / 2.0;
+                var cor1 = {x: center_xy.x + xoff, y: center_xy.y + yoff} //this is where the corner actually gets placed
+
+                // console.log(cor0);
+                // console.log(cor1);
+
+                var opp1 = center_xy.y - cor1.y;
+                var adj1 = center_xy.x - cor1.x;
+
+                var opp2 = center_xy.y - cor0.y;
+                var adj2 = center_xy.x - cor0.x;
+
+                var rot = Math.atan(opp1 / adj1) - Math.atan(opp2 / adj2);
+                console.log(image.filter, "Rotation angle is...", rot * rad2deg);
+                rots.push(rot * rad2deg);
+            });
+
+            rot = rots.reduce((a,b) => (a+b)) / rots.length;
+
+            // c0.x -= image.width / 2.0;
+            // c0.y -= image.height / 2.0;
+            //
+            // var opp1 = c.y - c0.y;
+            // var adj1 = c.x - c0.x;
+            //
+            // var opp2 = c.y - c0_real.y;
+            // var adj2 = c.x - c0_real.x;
+            //
+            // console.log(opp1, adj1, opp2, adj2);
+            //
+            // var rot = Math.atan(opp1 / adj1) - Math.atan(opp2 / adj2);
+            //
+            // console.log("Rotation angle is...", rot * rad2deg);
         }
 
+
         var offsets = $scope.wcs.coordinateToPixel(image.ra0, image.dec0);
-        var xoffset = offsets.x;
-        var yoffset = 0 - offsets.y;
+        //console.log($scope.wcs.pixelToCoordinate([image.width * 0.5, image.height * 0.5]));
+        var corners = image.corners;
+        // var RA_sum = 0;
+        // var DEC_sum = 0;
+        // console.log(image.width, image.height);
+        // corners.forEach(function(c){
+        //     console.log($scope.wcs.coordinateToPixel(c[0], c[1]));
+        //     RA_sum += c[0];
+        //     DEC_sum += c[1];
+        // });
+        // var center = [RA_sum / 4.0, DEC_sum / 4.0];
+        //console.log(center);
+        var offsets = $scope.wcs.coordinateToPixel(center.ra, center.dec);
+        // console.log(offsets);
+        // console.log("CENTER: ",center);
+        var xoffset = offsets.x - (image.width) * 0.5;
+        var yoffset = 0 - (offsets.y - image.height * 0.5);
+
+        var offsets1 = $scope.wcs.coordinateToPixel(corners[0][0], corners[0][1]);
+
+        // console.log(xoffset, offsets1.x);
+        // console.log(yoffset, 1 - offsets1.y);
         var pos = { x : xoffset,
                     y : yoffset,
+                    rot: rot,
                     width : image.width,
                     height : image.height};
 
@@ -284,12 +490,12 @@ myapp.controller('ImagexController', function ($scope, $http, $timeout, $interva
                 x: placement.x,
                 y: placement.y,
                 width: placement.width,
-                degrees: 0,
+                degrees: placement.rot,
                 success: function(event) {
                     console.log(event.item);
                     $scope.associations[imageid] = event.item;
                     $scope.associations[imageid].selected = false;
-                    $scope.associations[imageid].degrees = 0;
+                    $scope.associations[imageid].degrees = placement.rot;
                     $scope.associations[imageid]['x'] = placement.x;
                     $scope.associations[imageid]['y'] = placement.y;
                     $scope.associations[imageid]['cmap'] = 'grey_cm';
@@ -519,7 +725,7 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
             return;
         }
         var process = $scope.curr_proc[pid];
-        $http.get(appconf.api_url+"/processes/"+process.id).
+        $http.get(appconf.new_api+"/processes/"+process._id).
             then(function(res) {
                 if(res.data.status == 'COMPLETE' || res.data.status == 'ERROR' || res.data.progress == 1.0){
                     var promise = $scope.watchers[pid];
@@ -538,7 +744,7 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
 
     $scope.clear_curr_proc = function(proc) {
         var promise = $scope.watchers[proc.id];
-        $http.delete(appconf.api_url+"/processes/"+proc.id).
+        $http.delete(appconf.new_api+"/processes/"+proc.id).
         then(function(res) {
             $interval.cancel(promise);
             var index = $scope.curr_proc.indexOf(proc);
@@ -548,7 +754,7 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
     }
 
     $scope.clear_comp_proc = function(proc) {
-        $http.delete(appconf.api_url+"/processes/"+proc.id).
+        $http.delete(appconf.new_api+"/processes/"+proc.id).
         then(function(res) {
             var index = $scope.comp_proc.indexOf(proc);
             $scope.comp_proc.splice(index, 1);
@@ -558,8 +764,9 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
 
     $scope.getRecent = function() {
         var d = Date.now() - (24 * 60 * 60 * 1000);
-        var procsearch = "filter[where][status][like]=COMPLETE&[filter[where][ended_at][gt]="+d;
-        $http.get(appconf.api_url+"/processes?"+procsearch).
+        var where = {status : 'COMPLETE', ended_at : {'$gt' : d}};
+        // var procsearch = "filter[where][status][like]=COMPLETE&[filter[where][ended_at][gt]="+d;
+        $http.get(appconf.new_api+"/processes?q="+encodeURIComponent(JSON.stringify(where))).
             then(function(res) {
                 console.dir(res);
                 $scope.comp_proc = res.data;
@@ -568,8 +775,8 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
     };
 
     $scope.getCurrent = function() {
-        var where = "filter[where][progress][lt]=1";
-        $http.get(appconf.api_url+"/processes?"+where).
+        var where = {progress : {'$lt' : 1}};
+        $http.get(appconf.new_api+"/processes?q="+encodeURIComponent(JSON.stringify(where))).
             then(function(res) {
                 console.dir(res);
                 if($scope.curr_proc == {}) {
@@ -578,9 +785,11 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
                     $scope.getUpdates();
                 } else {
                     angular.forEach(res.data, function(value, pid){
-                        if(!(pid in $scope.curr_proc)){
-                            $scope.curr_proc[pid] = value;
-                            $scope.watchProc(value.id, pid);
+                        console.log(value);
+                        console.log(pid);
+                        if(!(value._id in $scope.curr_proc)){
+                            $scope.curr_proc[value._id] = value;
+                            $scope.watchProc(value._id, value._id);
                             $scope.$applyAsync();
                         }
                     })
@@ -589,6 +798,7 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
     };
 
     $scope.watchProc = function(id, key){
+        console.log(id, key);
         $scope.watchers[id] = $interval(function() {
                 $scope.getStatus(key);
             }, 3000);
@@ -619,12 +829,18 @@ myapp.controller('ActivityController', function ($scope, $http, $interval, $root
     });
 });
 
-myapp.controller('SigninController', function ($scope, $http, $location, toaster, appconf, AuthService) {
+myapp.controller('SigninController', function ($scope, $rootScope, $http, $route, $routeParams, $location, toaster, appconf, AuthService) {
 
+    console.log($rootScope);
+    console.log($rootScope.site_config);
+    // $scope.regconfig = $rootScope.site_config._registration;
+    // $scope.guestlogin = $rootScope.site_config._guest._enabled;
+
+    console.log($scope.guestlogin);
     $scope.showRegister = false;
     $scope.guestlogin = function() {
         $scope.username = 'guest@imagex.sca';
-        $scope.password = 'demo';
+        $scope.password = 'guest';
         $scope.login();
     }
 
@@ -637,28 +853,44 @@ myapp.controller('SigninController', function ($scope, $http, $location, toaster
         name: ''
     }
 
+    if($routeParams.id !== undefined && $routeParams.token !== undefined) {
+        $http({
+            method: "GET",
+            url: appconf.new_api+"/auth/confirm/"+$routeParams.id+"/"+$routeParams.token
+        }).then(function(res) {
+            toaster.pop('success', 'Confirmed!', res.data.message);
+        }, function(err) {
+            toaster.pop('error', 'Confirmation Failed!', err.data.error.message);
+            console.log(err);
+        });
+    };
+
 
     $scope.login = function() {
         if ($scope.username == "") {
             toaster.pop('error', 'Invalid or empty email', "Please enter your email address or register for an account.");
         } else {
-            AuthService.login($scope.username, $scope.password, function (res) {
+            AuthService.login($scope.username, $scope.password, function (res, msg) {
+                console.log(res);
                 if (res) {
                     var redirect = sessionStorage.getItem('auth_redirect');
                     if (redirect == "" || redirect == undefined) redirect = appconf.auth_redirect_url;
-                    // toaster.pop('success', 'Redirect', "Redirecting to " + redirect);
+                    toaster.pop('success', 'Redirect', "Redirecting to " + redirect);
                     AuthService.getRoles(function(res) {
                         // toaster.pop('success', 'Roles', res);
                         $location.path(redirect);
                     });
                 } else {
-                    toaster.pop('error', 'Login Failed', "Check username/password");
+                    toaster.pop('error', 'Login Failed', msg);
                 }
             });
         }
     };
 
     $scope.register = function() {
+        if($scope.regconfig !== 'open'){
+            toaster.pope('error','Cannot register', "Registration is not open at this time.");
+        }
         console.log($scope.regform.fields);
         $scope.submitted = true;
         var valid = true;
@@ -676,9 +908,9 @@ myapp.controller('SigninController', function ($scope, $http, $location, toaster
         if(valid){
             $http({
                 method: "POST",
-                url: appconf.api_url+"/users",
+                url: appconf.new_api+"/auth/register",
                 data: {
-                    username: $scope.regform.fields.name,
+                    name: $scope.regform.fields.name,
                     email: $scope.regform.fields.newemail,
                     password: $scope.regform.fields.password1
                 }
@@ -702,30 +934,244 @@ myapp.controller('UserController', function ($scope, $http, $location, toaster, 
     var authToken = JSON.parse(localStorage.getItem(appconf.auth_token));
     $http({
         method: "GET",
-        url: appconf.api_url+"/users?filter[include]=roles&access_token="+authToken.id
+        url: appconf.new_api+"/auth/list?jwt="+authToken.id
     }).then(function(res) {
         $scope.users = res.data;
         angular.forEach($scope.users, function(user){
-            $http({
-                method: "GET",
-                url: appconf.api_url+"/users/"+user.id+"/getRolesById?&access_token="+authToken.id
-            }).then(function(res) {
-                console.dir(res);
-                user.roles = res.data.payload.roles;
-            }, function(err) {
-                console.dir(err);
-            });
-        })
+            $scope.dataUsage(user);
+        });
     }, function(err) {
         console.dir(err);
     });
 
-
-
-
+    $scope.dataUsage = function(user) {
+        $http({
+            method: "GET",
+            url: appconf.new_api+"/exposures/data/"+user._id
+        }).then(function(res) {
+            console.dir(res);
+            user.files = res.data.files;
+            user.bytes = res.data.bytes;
+        }, function(err) {
+            console.dir(err);
+        });
+    }
 });
 
-myapp.controller('UploadController', function ($scope, $http, FileUploader, toaster, appconf, AuthService) {
+myapp.controller('SystemController', function ($scope, $http, $location, $interval, toaster, appconf) {
+
+    $scope.containers = {};
+    $scope.df = {};
+    $scope.info = {};
+    $scope.loading = false;
+
+    $scope.getSystemInfo = function(url, target) {
+        $http({
+            method: "GET",
+            url: url
+        }).then(function(res) {
+            console.log(res.data);
+            $scope[target] = res.data;
+        }, function(err) {
+            console.dir(err);
+        });
+    }
+
+    $scope.loadMe = function(){
+        console.log($scope.containers);
+        $scope.loading = true;
+        $scope.getSystemInfo('/docker/containers', 'containers');
+        // $scope.getSystemInfo('/docker/df', 'df');
+        // $scope.getSystemInfo('/docker/info', 'info');
+        $scope.loading = false;
+    };
+
+    $scope.loadMe();
+
+    var getLoop = $interval($scope.loadMe, 30000);
+
+    $scope.$on('$destroy',function(){
+        if(getLoop)
+            $interval.cancel(getLoop);
+    });
+});
+
+myapp.controller('ConfigureController', function ($scope, $rootScope, $http, $modal, $location, $interval, toaster, appconf) {
+
+
+    $scope._options = {};
+    var authToken = JSON.parse(localStorage.getItem(appconf.auth_token));
+
+    $scope.getConfig = function() {
+        $http.get(appconf.new_api +'/configs?jwt='+authToken.id)
+            .then(function(res) {
+                console.log(res.data.config);
+                $scope._options = res.data.config;
+            }, function(err) {
+                toaster.error('Error getting configuration from API');
+            });
+    };
+
+    $scope.updateConfig = function() {
+        $rootScope.site_config = $scope._options;
+        $http({
+            method: "PATCH",
+            data: $scope._options,
+            url: appconf.new_api + '/configs?jwt='+authToken.id
+        }).then(function(res) {
+            console.log(res.data);
+            toaster.success("Successfully updated");
+        }, function(err) {
+            toaster.error(res.data);
+        });
+    };
+
+    $scope.getConfig();
+
+    console.log($scope._options);
+
+    $scope.addField = function() {
+        $modal.open({
+            templateUrl: 't/searchfieldmodal.html',
+            // "<modal-dialog>" +
+            // "<div class='form-group'> " +
+            // "<label class='control-label'>Field</label> " +
+            // "<select type='text' class='form-control' ng-model='form.field'> " +
+            // "<option ng-repeat='k in keys' value='{{k}}'>{{k}}</option>" +
+            // "</select>" +
+            // "</div>" +
+            // "<div class='form-group'> " +
+            // "<label class='control-label'>Label</label> " +
+            // "<input type='text' class='form-control' ng-model='form.label'/> " +
+            // "</div>" +
+            // "<div class='form-group'> " +
+            // "<label class='control-label'>Units</label> " +
+            // "<input type='text' class='form-control' ng-model='form.units'/> " +
+            // "</div>" +
+            // "<div class='form-group'> " +
+            // "<label class='control-label'>Placeholder</label> " +
+            // "<input type='text' class='form-control' ng-model='form.placeholder'/> " +
+            // "</div>" +
+            // "<div class='form-group'> " +
+            // "<label class='control-label'>Type</label> " +
+            // "<input type='text' class='form-control' ng-model='form.type'/> " +
+            // "</div>" +
+            // "<hr><br><button class='btn btn-success pull-right' ng-click='ok()'>OK</button>" +
+            // "</modal-dialog>",
+            backdrop: true, // setting backdrop allows us to close the modal window on clicking outside the modal window
+            windowClass: 'modal', // windowClass - additional CSS class(es) to be added to a modal window template
+            // size: 'lg',
+            controller: function ($scope, $modalInstance) {
+                $scope.form = {
+                    field: '',
+                    label: ''
+                };
+
+                $scope.keys = [];
+
+                $scope.getKeys = function() {
+                    $http.get(appconf.new_api +'/headers/list/keys')
+                        .then(function(res) {
+                            $scope.keys = res.data.keys;
+                            $scope.form.field = $scope.keys[0];
+                            console.log(res.data);
+                        }, function(err) {
+                            toaster.error('Error getting list of unique search fields from API');
+                        });
+                };
+
+                $scope.getKeys();
+
+                $scope.dialogTitle = "New Search Element";
+                // $scope.size = 'lg';
+                $scope.cancel = function () {
+                    $modalInstance.dismiss('cancel');
+                };
+                $scope.ok = function() {
+                    $modalInstance.close($scope.form);
+                }
+            }
+        }).result.then(function(result) {
+            console.log(result);
+            var entry = {
+                label: result.label,
+                type: result.type
+            };
+            if(result.type == 'range'){
+                entry._min = '';
+                entry._max = '';
+            } else {
+                entry.value = '';
+            }
+
+            $http({
+                method: "POST",
+                url: appconf.new_api+"/searches",
+                data: {
+                    field: result.field,
+                    label: result.label,
+                    type: result.type,
+                    units: result.units,
+                    placeholder: result.placeholder
+                }
+            }).then(function(res) {
+                toaster.pop('success', 'Added new search field!', res.data);
+                $scope.getFields();
+            }, function(err) {
+                toaster.pop('error', 'Failed!', err.data.error.message);
+                console.log(err);
+            });
+        });
+    };
+
+    $scope.fields = [];
+    $scope.loading = false;
+
+    $scope.getFields = function() {
+        $scope.fields = [];
+        $http({
+            method: "GET",
+            url: appconf.new_api + '/searches'
+        }).then(function(res) {
+            console.log(res.data);
+            $scope.fields = res.data.fields;
+        }, function(err) {
+            console.dir(err);
+        });
+    }
+
+    $scope.deleteField = function(_id, idx) {
+        $http({
+            method: "DELETE",
+            url: appconf.new_api + '/searches/'+_id
+        }).then(function(res) {
+            console.log(res.data);
+            $scope.fields.splice(idx, 1);
+            toaster.success("Successfully deleted");
+        }, function(err) {
+            toaster.error(res.data);
+        });
+    }
+
+    $scope.toggleField = function(field) {
+        field.active = !field.active;
+        $http({
+            method: "PATCH",
+            data: field,
+            url: appconf.new_api + '/searches/'+field._id
+        }).then(function(res) {
+            console.log(res.data);
+            toaster.success("Successfully updated");
+            $scope.getFields();
+        }, function(err) {
+            toaster.error(res.data);
+        });
+    }
+
+    $scope.getFields();
+});
+
+myapp.controller('UploadController', function ($scope, $rootScope, $http, $filter, FileUploader, toaster, appconf, AuthService) {
     $scope.title = "ImageX";
     $scope.uploader = undefined;
 
@@ -759,11 +1205,25 @@ myapp.controller('UploadController', function ($scope, $http, FileUploader, toas
             }
         });
 
+        //size filter
+        uploader.filters.push({
+            name: 'sizeFilter',
+            fn: function (item) {
+                console.log(item);
+                return item.size <= $rootScope.site_config._maxfilesize;
+            }
+        });
+
         // CALLBACKS
 
         uploader.onWhenAddingFileFailed = function(item /*{File|FileLikeObject}*/, filter, options) {
             console.info('onWhenAddingFileFailed', item, filter, options);
-            toaster.pop('error','Invalid Filetype','Please add a valid FITS or .fz compressed file')
+            if(filter.name == 'syncFilter') {
+                toaster.pop('error','Invalid Filetype','Please add a valid FITS or .fz compressed file')
+            }
+            if(filter.name == 'sizeFilter') {
+                toaster.pop('error','Size Limit Exceeded','Please add a file less than '+$filter('bytes')($rootScope.site_config._maxfilesize));
+            }
         };
         uploader.onAfterAddingFile = function(fileItem) {
             console.info('onAfterAddingFile', fileItem);
@@ -836,37 +1296,37 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
             title: 'DECam',
             //ixids: ['59ed00f4327cd50010741ef4','59ed01cb327cd50010741ef6','59ed02c8327cd50010741ef8'],
             ixids : [],
-            img: 'public/images/demo/3color.png',
+            img: 'public/images/demo/telescope.png',
             arrangement: 'wcs',
             desc: 'DECam Demo ',
             onload: function(){return {}}
         },
-        'night' : {
-            title: "WCS Positioning",
-            ixids: [],
-            arrangment: 'wcs',
-            img: 'public/images/demo/grid.png',
-            desc: 'A DECam exposure of the central bulge consisting of 60 extension images are rendered individually and placed into their correct spatial positions based on the header WCS. ',
-            onload: function(){
-                return {}
-            }
-        },
-        'animate' : {
-            title: "Rotation and Position",
-            ixids: [],
-            arrangment: 'wcs',
-            img: 'public/images/demo/rotate.png',
-            desc: 'Manipulating the position and rotation angle of multiple images simultaneously is easily done in ImageX.',
-            onload: function(){
-                return {
-                    all : {
-                        deal : null,
-                        cmap : 'bb_cm',
-                        composite : 'source-over'
-                    }
-                }
-            }
-        },
+        // 'night' : {
+        //     title: "WCS Positioning",
+        //     ixids: [],
+        //     arrangment: 'wcs',
+        //     img: 'public/images/demo/grid.png',
+        //     desc: 'A DECam exposure of the central bulge consisting of 60 extension images are rendered individually and placed into their correct spatial positions based on the header WCS. ',
+        //     onload: function(){
+        //         return {}
+        //     }
+        // },
+        // 'animate' : {
+        //     title: "Rotation and Position",
+        //     ixids: [],
+        //     arrangment: 'wcs',
+        //     img: 'public/images/demo/rotate.png',
+        //     desc: 'Manipulating the position and rotation angle of multiple images simultaneously is easily done in ImageX.',
+        //     onload: function(){
+        //         return {
+        //             all : {
+        //                 deal : null,
+        //                 cmap : 'bb_cm',
+        //                 composite : 'source-over'
+        //             }
+        //         }
+        //     }
+        // },
         'blink' : {
             title: 'Blink',
             ixids: [],
@@ -884,33 +1344,40 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
         },
     };
 
+    var url = appconf.new_api + "/headers/find";
+
     $scope.populateM1 = function(){
         var found_filters = [];
         $http({
-            url : appconf.api_url+encodeURI('/exposures?filter={"where": {"name": {"inq": ["M1 r","M1 g","M1 Ha"]}}}'),
-            method : 'GET'
+            method: "POST",
+            url: url,
+            data: {
+                q: {'$and':[{'keys.OBJECT':{'$regex':'M1','$options':'i'}}]},
+                c: {}
+            }
         }).then(
             function(res){
                 var onload = {}
                 angular.forEach(res.data, function(value, key){
 
                     console.log(value.name);
-                    if(value.filter == 'CTIO_Ha' && (found_filters.indexOf(value.filter) == -1)){
+                    console.log(key,value);
+                    if(value.keys.FILTER == 'CTIO_Ha' && (found_filters.indexOf(value.filter) == -1)){
                         found_filters.push('CTIO_Ha');
-                        $scope.demos['3color'].ixids.push(value.id);
-                        onload[value.id] = {cmap: 'red_cm'};
+                        $scope.demos['3color'].ixids.push(value.exposureId._id);
+                        onload[value.exposureId._id] = {cmap: 'red_cm'};
                     }
 
-                    if(value.filter == 'odi_r' && (found_filters.indexOf(value.filter) == -1)){
+                    if(value.keys.FILTER == 'odi_r' && (found_filters.indexOf(value.filter) == -1)){
                         found_filters.push('odi_r');
-                        $scope.demos['3color'].ixids.push(value.id);
-                        onload[value.id] = {cmap: 'green_cm'};
+                        $scope.demos['3color'].ixids.push(value.exposureId._id);
+                        onload[value.exposureId._id] = {cmap: 'green_cm'};
                     }
 
-                    if(value.filter == 'odi_g' && (found_filters.indexOf(value.filter) == -1)){
+                    if(value.keys.FILTER == 'odi_g' && (found_filters.indexOf(value.filter) == -1)){
                         found_filters.push('odi_g');
-                        $scope.demos['3color'].ixids.push(value.id);
-                        onload[value.id] = {cmap: 'blue_cm'};
+                        $scope.demos['3color'].ixids.push(value.exposureId._id);
+                        onload[value.exposureId._id] = {cmap: 'blue_cm'};
                     }
                 });
 
@@ -925,15 +1392,19 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
 
     $scope.populate = function(){
         $http({
-            url : appconf.api_url+encodeURI('/exposures?filter={"where": {"name": {"like": "0712*"}}}'),
-            method : 'GET'
+            method: "POST",
+            url: url,
+            data: {
+                q: {'$and':[{'keys.OBJECT':{'$regex':'0712_','$options':'i'}}]},
+                c: {}
+            }
         }).then(
             function(res){
                 angular.forEach(res.data, function(value, key){
 
                     //$scope.images[value.id] = [value.ra0, value.dec0, value.pixelscale, value.width, value.height, value.filter, value.header];
-                    $scope.demos.night.ixids.push(value.id);
-                    $scope.demos.animate.ixids.push(value.id);
+                    $scope.demos.night.ixids.push(value.exposureId._id);
+                    $scope.demos.animate.ixids.push(value.exposureId._id);
                 });
             },
             function(err){
@@ -943,13 +1414,17 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
 
     $scope.populateDE = function(){
         $http({
-            url : appconf.api_url+encodeURI('/exposures?filter={"where": {"name": {"like": "DES0*"}}}'),
-            method : 'GET'
+            method: "POST",
+            url: url,
+            data: {
+                q: {'$and':[{'keys.TILENAME':{'$regex':'DES','$options':'i'}}]},
+                c: {}
+            }
         }).then(
             function(res){
                 angular.forEach(res.data, function(value, key){
                     //$scope.images[value.id] = [value.ra0, value.dec0, value.pixelscale, value.width, value.height, value.filter, value.header];
-                    $scope.demos.DECam.ixids.push(value.id);
+                    $scope.demos.DECam.ixids.push(value.exposureId._id);
                 });
             },
             function(err){
@@ -972,40 +1447,9 @@ myapp.controller('DemoController', function($scope, $http, $compile, appconf, to
         $scope.ixid = demoId;
         $scope.onload = demo.onload;
         $scope.arrangement = demo.arrangement;
-        var demoStr = "<imagexviewer imageids='{{ixids}}' ixid='{{ixid}}' ixheight=500 arrangement='{{arrangement}}' onload='onload()'></imagexviewer>";
+        var demoStr = "<imagexviewer imageids='ixids' ixid='{{ixid}}' ixheight=500 arrangement='{{arrangement}}' onload='onload()'></imagexviewer>";
         var ix = $compile( demoStr )( $scope );
 
         angular.element($("#demoTarget")).append(ix);
-    };
-});
-
-myapp.directive('passwordStrength', function() {
-    return {
-        scope: {
-            password: "=password",
-
-            //optional attributes to make password more secure
-            profile: "=profile",
-            user: "=user",
-        },
-        templateUrl: 't/passwordstrength.html',
-        link: function(scope, element, attributes) {
-            scope.password_strength = {};
-            scope.$watch('password', function(newv, oldv) {
-                if(newv) {
-                    //gather strings that we don't want user to use as password (like user's own fullname, etc..)
-                    var used = [];
-                    if(scope.profile) used.push(scope.profile.fullname);
-                    if(scope.user) {
-                        used.push(scope.user);
-                    }
-
-                    console.log(used);
-                    //https://blogs.dropbox.com/tech/2012/04/zxcvbn-realistic-password-strength-estimation/
-                    var st = zxcvbn(newv, used);
-                    scope.password_strength = st;
-                }
-            });
-        }
     };
 });

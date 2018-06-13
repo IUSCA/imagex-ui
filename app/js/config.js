@@ -17,8 +17,26 @@ angular.module('app.config', [])
     user: 'ix_user',
 
     api_url: '/imagex-api/api',
+    new_api: '/imagex-newapi',
 
-    tile_load_limit: 140
-    });
+    tile_load_limit: 140,
+
+    default_site_options: {
+        _guest: {
+            _enabled: false,
+            _search: true,
+            _download: false
+        },
+        _registration: 'open',  // open|invite
+        _users: {
+            _upload: true,
+            _delete: false,
+            _sharing: 'all',  //  choose|none|all
+            _quota: 1e10   // default upload limit in bytes
+        },
+        _demomode: true,
+        _maxfilesize: 1e9 // maximum file size for individual upload in bytes
+    }
+});
 
 

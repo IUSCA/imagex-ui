@@ -1,19 +1,43 @@
 <div class="container-fluid main-container">
+    <div class="header">
+        <h2><span class="fa-stack fa-lg">
+              <i class="fa fa-circle fa-stack-2x site-color"></i>
+              <i class="fa fa-users fa-stack-1x fa-inverse"></i>
+            </span></i> Registered Users</h2>
+    </div>
 
-    <table class="table table-hover table-condensed">
-        <thead>
-        <th></th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Roles</th>
-        </thead>
-        <tr ng-repeat="u in users">
-            <td>
-                <i class="fa fa-fw fa-check text-success"></i>
-            </td>
-            <td>{{u.username}}</td>
-            <td>{{u.email}}</td>
-            <td><span ng-repeat="role in u.roles">{{role}}</span></td>
-        </tr>
-    </table>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            Users <i class="fa fa-refresh fa-spin fa-fw" ng-if="loading"></i> <button class="btn btn-xs btn-info" ng-click="addField()"><i class="fa fa-fw fa-envelope"></i> Send Invitations</button>
+        </div>
+        <div class="panel-body">
+
+            <table class="table table-hover table-condensed">
+                <thead>
+                <th></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Files</th>
+                <th>Size</th>
+                <th>Quota</th>
+                </thead>
+                <tr ng-repeat="u in users">
+                    <td>
+                        <i class="fa fa-fw fa-check text-success" ng-if="u.confirmed"></i>
+                        <i class="fa fa-fw fa-exclamation-triangle text-warning" ng-if="!u.confirmed"></i>
+                    </td>
+                    <td>{{u.username}}</td>
+                    <td>{{u.email}}</td>
+                    <td><span ng-repeat="role in u.roles">{{role}}<span ng-if="!$last"> | </span></span></td>
+                    <td>{{u.files}}</td>
+                    <td>{{u.bytes | bytes}}</td>
+                    <td><div class="progress progress-mini">
+                        <div class="progress-bar progress-bar-info" style="width: {{u.bytes / 2e7}}%"></div>
+                    </div></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
 </div>

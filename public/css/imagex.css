@@ -92,9 +92,9 @@ other selectors that are more specific or come later and might alter display.
     display: none !important;
 }
 
-html, body, .container-fluid, .row {
-    height: 100%;
-}
+/*html, body, .container-fluid, .row {*/
+    /*height: 100%;*/
+/*}*/
 
 .main-container {
     margin-top: 45px;
@@ -118,6 +118,28 @@ html, body, .container-fluid, .row {
 
 
 /**************************************** Footer ***************************************/
+
+html, body {
+    height: 100%;
+}
+
+#wrap {
+    min-height: 100%;
+}
+
+#main {
+    overflow:auto;
+    padding-bottom:150px; /* this needs to be bigger than footer height*/
+}
+
+.footer {
+    position: relative;
+    margin-top: -150px; /* negative value of footer height */
+    height: 150px;
+    clear:both;
+    padding-top:20px;
+}
+
 #footer-v1 { clear: both; z-index: 1001 !important;}
 
 #footer-v1 * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
@@ -194,3 +216,26 @@ html, body, .container-fluid, .row {
 }
 /* 980px (980/16) - 960+20 for FF, IE, Opera d/t rounding */
 @media screen and (min-width: 63.75em) { #footer-v1 .wrapper { padding: 0; } }
+
+
+/***************************/
+
+.site-color {
+    color: rgba(0, 121, 161, 0.8);
+}
+
+.navbar-inverse {
+    background-color: rgba(0, 121, 161, 0.8);
+}
+
+.progress-mini {
+    height: 12px;
+    padding: 1px;
+    margin-bottom: 2px;
+}
+
+.progress-large {
+    height: 30px;
+    padding: 2px;
+    margin-bottom: 2px;
+}

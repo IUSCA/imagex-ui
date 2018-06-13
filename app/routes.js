@@ -1,4 +1,5 @@
 var express = require('express');
+var http = require('http');
 var request = require('request');
 var path = require('path');
 var winston = require('winston');
@@ -93,6 +94,39 @@ module.exports = function (app) {
         imagex_jwt(paths, function(token){
             res.json(token);
         })
+    });
+
+    app.get('/docker/:path', function(req, res) {
+
+        var options = {
+            socketPath: '/var/run/docker.sock',
+            path: '',
+        };
+
+        switch(req.params.path) {
+            case 'containers' :
+                options.path = '/containers/json?all=1';
+                break;
+            case 'info' :
+                options.path = '/info';
+                break;
+            case 'df' :
+                options.path = '/system/df';
+                break;
+            default:
+                res.sendStatus(400);
+                next();
+        }
+
+        const callback = _res => {
+            console.log(`STATUS: ${_res.statusCode}`);
+            _res.setEncoding('utf8');
+            _res.on('data', data => {console.log(data); res.json(JSON.parse(data))});
+            _res.on('error', data => console.error(data));
+        };
+
+        const clientRequest = http.request(options, callback);
+        clientRequest.end();
     });
 
     // application -------------------------------------------------------------

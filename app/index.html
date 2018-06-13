@@ -19,9 +19,11 @@
 <body ng-cloak>
 <navbar ng-if="$root.activeNav !== 'signin'"></navbar>
 <toaster-container toaster-options="{'position-class': 'toast-bottom-right', 'close-button': {'toast-error': false}}"></toaster-container>
-<ng-view></ng-view><!-- <ng-view/> will cause route looping-->
+<div id="wrap" ng-if="$root.activeNav !== 'signin'">
+	<ng-view></ng-view><!-- <ng-view/> will cause route looping-->
+</div>
 <ng-include src="'t/footer.html'" ng-if="$root.activeNav !== 'signin'"></ng-include>
-
+<ng-view ng-if="$root.activeNav == 'signin'"></ng-view>
 <script src="node_modules/jquery/dist/jquery.min.js"></script><!--bootstrap requires jquery-->
 <script src="node_modules/angular/angular.min.js"></script>
 <script src="node_modules/angular-route/angular-route.min.js"></script>
@@ -49,5 +51,6 @@
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
 <script src="js/controllers.js"></script>
+<script src="js/directives.js"></script>
 </body>
 </html>

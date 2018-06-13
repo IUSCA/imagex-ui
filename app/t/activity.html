@@ -14,15 +14,15 @@
         <div class="row">
             <div class="col-md-11 col-md-offset-1 col-xs-offset-1 col-xs-10" ng-repeat="comp in comp_proc" ng-if="comp.parentID=='None'">
                 <label>
-                    <a href="" ng-click="showme = comp.id" ng-hide="showme == comp.id"><span class="text-info"><i class="fa fa-fw fa-plus-circle"></i></span></a>
-                    <a href="" ng-click="showme = ''" ng-show="showme == comp.id"><span class="text-info"><i class="fa fa-fw fa-minus-circle"></i></span></a>
+                    <a href="" ng-click="showme = comp._id" ng-hide="showme == comp._id"><span class="text-info"><i class="fa fa-fw fa-plus-circle"></i></span></a>
+                    <a href="" ng-click="showme = ''" ng-show="showme == comp._id"><span class="text-info"><i class="fa fa-fw fa-minus-circle"></i></span></a>
                     {{comp.name}} - <a href="" ng-click="clear_comp_proc(comp)"><span class="text-danger"><i class="fa fa-fw fa-trash-o"></i></span></a>
                 </label>
                 <div class="progress">
                     <div class="progress-bar progress-bar-success" style="width: 100%">
                     </div>
                 </div>
-                <div class="animate-show-hide" ng-show="showme == comp.id">
+                <div class="animate-show-hide" ng-show="showme == comp._id">
                     <ul>
                         <li><small><strong>Started At:</strong> {{comp.started_at}}</small></li>
                         <li><small><strong>Ended At:</strong> {{comp.ended_at}}</small></li>
@@ -48,15 +48,15 @@
             <div ng-show="curr_proc.length < 1" class="col-md-9 col-md-offset-1 col-xs-offset-1 col-xs-10">
                 <h6>No Active processes found</h6>
             </div>
-            <div class="col-md-11 col-md-offset-1 col-xs-offset-1 col-xs-10" ng-repeat="curr in curr_proc" ng-if="curr.parentID=='None'" >
-                <a href="" ng-click="showme = curr.id" ng-hide="showme == curr.id"><span class="text-info"><i class="fa fa-fw fa-plus-circle"></i></span></a>
-                <a href="" ng-click="showme = ''" ng-show="showme == curr.id"><span class="text-info"><i class="fa fa-fw fa-minus-circle"></i></span></a>
+            <div class="col-md-11 col-md-offset-1 col-xs-offset-1 col-xs-10" ng-repeat="curr in curr_proc" ng-if="curr.parentID=='None' || curr.parentID !== undefined" >
+                <a href="" ng-click="showme = curr._id" ng-hide="showme == curr._id"><span class="text-info"><i class="fa fa-fw fa-plus-circle"></i></span></a>
+                <a href="" ng-click="showme = ''" ng-show="showme == curr._id"><span class="text-info"><i class="fa fa-fw fa-minus-circle"></i></span></a>
                 <label>{{curr.name}} - {{curr.status}} | <span class="text-danger"><a href="" ng-click="clear_curr_proc(curr)"><i class="fa fa-fw fa-ban"></i></a></span></label>
                 <div class="progress">
                     <div class="progress-bar progress-striped active" style="width: {{curr.progress * 100}}%">
                     </div>
                 </div>
-                <div class="animate-show-hide" ng-show="showme == curr.id">
+                <div class="animate-show-hide" ng-show="showme == curr._id">
                     <ul>
                         <li><small><strong>Started At:</strong> {{curr.started_at}}</small></li>
                         <li><small><strong>Owned By:</strong> {{comp.owner}}</small></li>

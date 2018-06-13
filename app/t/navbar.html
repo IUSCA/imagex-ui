@@ -1,5 +1,5 @@
 <div>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
+    <nav class="navbar navbar-inverse navbar-fixed-top site-color">
         <div class="container-fluid">
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-2">
@@ -8,22 +8,24 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#">{{title}}</a>
+                <a class="navbar-brand" href="#">{{$root.site_config._title}}</a>
             </div>
 
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
                 <ul class="nav navbar-nav">
                     <li ng-class="{'active': activeNav == 'search'}"><a href="/#!/search">Search</a></li>
-                    <li ng-class="{'active': activeNav == 'demo'}"><a href="/#!/demo">Demo</a></li>
+                    <li ng-class="{'active': activeNav == 'demo'}" ng-show="$root.site_config._demo"><a href="/#!/demo">Demo</a></li>
                     <li ng-class="{'active': activeNav == 'activity'}"><a href="/#!/activity" ng-show="user.roles.indexOf('admin')!=-1">Progress</a></li>
                     <li ng-class="{'active': activeNav == 'upload'}"><a href="/#!/upload" ng-show="user.roles.indexOf('guest')==-1">Upload</a></li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     <li class="dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-fw fa-user-circle-o"></i> {{user.username}} <span class="caret"></span></a>
+                        <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-fw fa-user-circle-o"></i> {{user.name}} <span class="caret"></span></a>
                         <ul class="dropdown-menu" role="menu">
                             <li><a ng-click="logout()"><i class="fa fa-fw fa-sign-out"></i> Logout</a></li>
                             <li ng-class="{'active': activeNav == 'users'}" ng-show="user.roles.indexOf('admin')!=-1"><a href="/#!/users"><i class="fa fa-fw fa-users"></i> Users</a></li>
+                            <li ng-class="{'active': activeNav == 'system'}" ng-show="user.roles.indexOf('admin')!=-1"><a href="/#!/system"><i class="fa fa-fw fa-server"></i> System</a></li>
+                            <li ng-class="{'active': activeNav == 'configure'}" ng-show="user.roles.indexOf('admin')!=-1"><a href="/#!/configure"><i class="fa fa-fw fa-gears"></i> Configure</a></li>
                         </ul>
                     </li>
                 </ul>

@@ -16,47 +16,43 @@ var myapp = angular.module('myapp', [
     'rzModule'
 ]);
 
-myapp.factory('AuthService', function(appconf, $http) {
+myapp.factory('AuthService', function(appconf, $http, jwtHelper) {
 
     var user = JSON.parse(localStorage.getItem(appconf.user));
     var authToken = JSON.parse(localStorage.getItem(appconf.auth_token));
 
     return {
-        user: function() { return user; },
-        token: function() { return authToken},
+        user: function() { return JSON.parse(localStorage.getItem(appconf.user)); },
+        token: function() { return JSON.parse(localStorage.getItem(appconf.auth_token)); },
         login: function(username, password, cb) {
             localStorage.removeItem(appconf.user);
             localStorage.removeItem(appconf.auth_token);
             $http({
                 method: "POST",
-                url: appconf.api_url+"/users/login",
-                data: {"email": username, "password": password}
+                url: appconf.new_api+"/auth/login",
+                data: {"username": username, "password": password}
             }).
             then(function(res) {
-                authToken = res.data;
-                authToken.created = new Date(authToken.created);
-                authToken['expiration'] = authToken.created + authToken.ttl;
-                $http({
-                    method: "GET",
-                    url: appconf.api_url+"/users/"+authToken.userId+"?access_token="+authToken.id
-                }).then(function(res) {
-                    user = res.data;
-                    localStorage.setItem(appconf.auth_token, JSON.stringify(authToken));
-                    localStorage.setItem(appconf.user, JSON.stringify(user));
-                    cb(true);
-                }, function(err) {
-                    console.dir(err);
-                    cb(false);
-                });
+                console.log(res.data);
+                authToken = res.data.jwt;
+                var tokenPayload = jwtHelper.decodeToken(authToken);
+                tokenPayload['created'] = new Date(tokenPayload.iat);
+                tokenPayload['expiration'] = new Date(tokenPayload.exp);
+                tokenPayload['id'] = authToken;
+                localStorage.setItem(appconf.auth_token, JSON.stringify(tokenPayload));
+                localStorage.setItem(appconf.user, JSON.stringify(res.data.profile));
+                console.log(res.data.profile);
+                console.log(JSON.parse(localStorage.getItem(appconf.user)));
+                cb(true, null);
             }, function(err) {
                 console.dir(err);
-                cb(false);
+                cb(false, err.data);
             });
         },
         logout: function(cb) {
             $http({
-                method: "POST",
-                url: appconf.api_url+"/users/logout?access_token="+authToken.id
+                method: "GET",
+                url: appconf.new_api+"/auth/logout"
             }).then(function(res) {
                 localStorage.removeItem(appconf.user);
                 localStorage.removeItem(appconf.auth_token);
@@ -69,18 +65,8 @@ myapp.factory('AuthService', function(appconf, $http) {
             });
         },
         getRoles: function(cb) {
-            $http({
-                method: "GET",
-                url: appconf.api_url+"/users/"+user.id+"/getRolesById?&access_token="+authToken.id
-            }).then(function(res) {
-                var roles = res.data.payload.roles;
-                user["roles"] = roles;
-                localStorage.setItem(appconf.user, JSON.stringify(user));
-                cb(roles);
-            }, function(err) {
-                console.dir(err);
-                cb(false);
-            });
+            var test_user = JSON.parse(localStorage.getItem(appconf.user));
+            cb(test_user.roles);
         },
         isLoggedIn: function() { return (user.username != '');},
         checkToken: function() { return (authToken.id != '');}
@@ -103,6 +89,15 @@ myapp.factory('TokenService', function($http){
     }
 });
 
+myapp.filter('startFrom', function () {
+    return function (input, start) {
+        if (input) {
+            start = +start;
+            return input.slice(start);
+        }
+        return [];
+    };
+});
 
 myapp.filter('bytes', function() {
     return function(bytes, precision) {
@@ -125,125 +120,7 @@ myapp.filter('limitObjectTo', function() {
     };
 });
 
-
-myapp.directive('imagexviewer', function() {
-    return {
-        restrict: "E",
-        replace: true,
-        transclude: true,
-        scope: {
-            ixid: '@',
-            imageids: '@',
-            ixheight: '@',
-            arrangement: '@',
-            onload: '&onload'
-        },
-        templateUrl: "t/imagex.html",
-        controller: 'ImagexController'
-    };
-});
-
-myapp.directive('navbar', function() {
-    return {
-        restrict: "E",
-        replace: true,
-        templateUrl: 't/navbar.html',
-        controller: ['$scope', '$rootScope', '$location','appconf', 'AuthService', 'toaster', function ($scope, $rootScope, $location, appconf, AuthService, toaster) {
-            $scope.user = AuthService.user();
-            $scope.title = appconf.title;
-            $scope.active = $rootScope.activeNav;
-            $scope.logout = function() {
-                AuthService.logout(function(res){
-                    console.dir(res);
-                    if(res){
-                        $location.path("/signin");
-                        toaster.pop('success', 'Logged Out', "Successfully logged out");
-                    }
-                });
-            }
-        }]
-    };
-});
-
-myapp.directive("colormap", function() {
-    return {
-        restrict: "A",
-        scope: {
-            cmap: '=cmap',
-            width: '@',
-            height: '@',
-            label: '@'
-        },
-        link: function (scope, element, attrs) {
-
-            var tmp_cmap = scope.cmap.slice(0);
-            var center = 128;
-            var diff = 255 - center;
-            for(i = 0; i < 256; i++) {
-                if(i > center){
-                    var offset = i - center;
-                    var ratio = offset / diff;
-                    var position = Math.min(ratio * 128 + 128,255)|0;
-                }else{
-                    var ratio = center / 128;
-                    var position = Math.max(0,i/ratio,0)|0;
-                }
-                tmp_cmap[i] = scope.cmap[position];
-            }
-
-            var width = scope.width;
-            var height = scope.height;
-            var canvas = document.createElement('canvas');
-            var label = document.createTextNode(scope.label);
-
-            var ctx = canvas.getContext('2d');
-            canvas.id = 'canvas';
-            canvas.width = width;
-            canvas.height = height;
-
-            element[0].appendChild(canvas);
-            element[0].appendChild(label);
-
-            var step = canvas.width / 256;
-            var distance = 0;
-
-
-            for(var i = 0; i < 256; i++){
-                var value = tmp_cmap[i];
-                ctx.strokeStyle = "rgb("+value[0]+","+value[1]+","+value[2]+")";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(distance,0);
-                ctx.lineTo(distance,canvas.height);
-                ctx.stroke();
-                distance = distance + step;
-            }
-
-        }
-    };
-});
-
-myapp.directive('modalDialog', function() {
-    return {
-        restrict: 'E',
-        replace: true,
-        transclude: true,
-        link: function(scope) {
-            scope.cancel = function() {
-                scope.$dismiss('cancel');
-            };
-        },
-        template:
-        "<div>" +
-        "<div class='modal-header'>" +
-        "<button type='button' class='close' data-dismiss='cancel' ng-click='cancel()' aria-label='Close'><span aria-hidden='true'>&times;</span></button>"+
-        "<h3 class='modal-title' ng-bind='dialogTitle'></h3>" +
-        "</div>" +
-        "<div class='modal-body' ng-transclude></div>" +
-        "</div"
-    };
-});
-
+myapp.filter('unsafe', function($sce) { return $sce.trustAsHtml; });
 
 //configure route
 myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
@@ -280,6 +157,25 @@ myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
             requiresAdmin: true,
             nav: 'users'
         })
+        .when('/confirm/:id/:token', {
+            templateUrl: 't/signin.html',
+            controller: 'SigninController',
+            nav: 'signin'
+        })
+        .when('/system', {
+            templateUrl: 't/system.html',
+            controller: 'SystemController',
+            requiresLogin: true,
+            requiresAdmin: true,
+            nav: 'system'
+        })
+        .when('/configure', {
+            templateUrl: 't/configure.html',
+            controller: 'ConfigureController',
+            requiresLogin: true,
+            requiresAdmin: true,
+            nav: 'configure'
+        })
         .when('/demo', {
             templateUrl: 't/demo.html',
             controller: 'DemoController',
@@ -289,10 +185,11 @@ myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
         .otherwise({
             redirectTo: '/signin'
         });
-}]).run(['$rootScope', '$location', 'toaster', 'jwtHelper', 'appconf', 'AuthService', function($rootScope, $location, toaster, jwtHelper, appconf, AuthService) {
+}]).run(['$rootScope', '$location', '$http', 'toaster', 'jwtHelper', 'appconf', 'AuthService', function($rootScope, $location, $http, toaster, jwtHelper, appconf, AuthService) {
     $rootScope.$on("$routeChangeStart", function(event, next, current) {
         //redirect to /signin if user hasn't authenticated yet
         $rootScope.activeNav = next.nav;
+        $rootScope.user = AuthService.user();
         if(next.requiresLogin) {
             var authToken = AuthService.token();
             var today = new Date();
@@ -319,9 +216,20 @@ myapp.config(['$routeProvider', 'appconf', function($routeProvider, appconf) {
                 }
             }
         }
-
-
-
     });
+
+    $rootScope.$on("$routeChangeSuccess", function(event, current, previous) {
+        //get most recent config from db and update appconf
+        console.log('in here!');
+        $http({
+            method: "GET",
+            url: appconf.new_api+"/configs"
+        }).then(function(res) {
+            console.log(res.data);
+            $rootScope.site_config = res.data.config;
+        }, function(err) {
+            console.dir(err);
+        });
+    })
 }]);
 

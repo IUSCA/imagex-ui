@@ -1,90 +1,103 @@
-<div class="header">
-    <div class="container-fluid main-container">
-        <h2>Search</h2>
+<div class="container-fluid main-container">
+    <div class="header">
+        <h2><span class="fa-stack fa-lg">
+              <i class="fa fa-circle fa-stack-2x site-color"></i>
+              <i class="fa fa-search fa-stack-1x fa-inverse"></i>
+            </span></i> ImageX Search</h2>
     </div>
-</div>
 
-<div class="container">
+    <form class="form-horizontal" id="elTarget">
 
+            <ra-dec-fields form="searchform"></ra-dec-fields>
+
+
+            <!--<button class="btn btn-info" ng-click="addElement()">Add Element</button>-->
+            <!--<div class="row">-->
+                <!--<span id="elTarget"></span>-->
+            <!--</div>-->
+            <!--<search-element field="searchform.object" label="Object" placeholder="object"></search-element>-->
+
+            <!--<div class="form-group">-->
+                <!--<label class="col-md-4 control-label">Object</label>-->
+                <!--<div class="col-md-4 col-sm-6"">-->
+                    <!--<div class="input-group">-->
+                        <!--<input type="text" class="form-control" ng-model="searchform.object" placeholder="object"/>-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+
+            <!--<div class="form-group">-->
+                <!--<label class="col-md-4 control-label">Filter</label>-->
+                <!--<div class="col-md-4 col-sm-6"">-->
+                    <!--<div class="input-group">-->
+                        <!--<input type="text" class="form-control" ng-model="searchform.filter" placeholder="sdss_g"/>-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+
+            <!--<div class="form-group">-->
+                <!--<label class="col-md-4 control-label" for="exptime">Observation Date</label>-->
+                <!--<div class="col-md-4 col-sm-6">-->
+                    <!--<div class="input-group">-->
+                        <!--<input type="text" class="form-control" datepicker-popup="{{dateformat}}" ng-model="searchform.obsdate" is-open="opened" min-date="minDate" max-date="maxDate" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" close-text="Close" />-->
+                        <!--<span class="input-group-btn">-->
+                                <!--<button type="button" class="btn btn-default" ng-click="dateopen($event)">-->
+                                    <!--<i class="fa fa-fw fa-calendar"></i></button>-->
+                            <!--</span>-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+    </form>
     <form class="form-horizontal">
-        <fieldset>
-
-            <div class="form-group">
-                <label class="col-md-4 control-label">Object</label>
-                <div class="col-md-4 col-sm-6"">
-                    <div class="input-group">
-                        <input type="text" class="form-control" ng-model="searchform.object" placeholder="object"/>
-                    </div>
-                </div>
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button class="btn btn-info" ng-click="getexposures()">Search</button>
+                <button class="btn btn-warning" ng-click="resetForm()">Clear</button>
+                <a type="button" ng-show="selected > 1" class="btn btn-success" ng-click="viewSelected()"><i class="fa fa-fw fa-eye"></i> View Selected</a>
+                <a type="button" ng-show="selected > 1" class="btn btn-success" ng-click="dlSelected()"><i class="fa fa-fw fa-download"></i> Download Selected</a>
             </div>
-
-            <div class="form-group">
-                <label class="col-md-4 control-label">Filter</label>
-                <div class="col-md-4 col-sm-6"">
-                    <div class="input-group">
-                        <input type="text" class="form-control" ng-model="searchform.filter" placeholder="sdss_g"/>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="exptime">Observation Date</label>
-                <div class="col-md-4 col-sm-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" datepicker-popup="{{dateformat}}" ng-model="searchform.obsdate" is-open="opened" min-date="minDate" max-date="maxDate" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" close-text="Close" />
-                        <span class="input-group-btn">
-                                <button type="button" class="btn btn-default" ng-click="dateopen($event)">
-                                    <i class="fa fa-fw fa-calendar"></i></button>
-                            </span>
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="form-group">
-                <div class="col-sm-offset-2 col-sm-10">
-                    <button class="btn btn-info" ng-click="getexposures()">Get Images</button>
-                    <a type="button" ng-show="selected > 1" class="btn btn-success" ng-click="viewSelected()"><i class="fa fa-fw fa-eye"></i> View Selected</a>
-
-                </div>
-            </div>
-
-
-
-        </fieldset>
-
-
+        </div>
     </form>
 
-    <span ng-show="exposures.length">{{exposures.length}} results</span>
+
+    <div class="alert alert-warning" ng-show="noResults">
+        <h4>No results found</h4>
+        <p>Try adjusting your search criteria.</p>
+    </div>
+
+    <pagination ng-show="exposures.length" total-items="exposures.length" ng-model="currentPage" max-size="5" class="pagination-sm pull-right"  items-per-page="entryLimit" boundary-links="true" rotate="false" ng-change="pageChanged()"></pagination>
 
     <table class="table table-bordered table-hover table-condensed" ng-show="exposures.length">
         <thead>
-        <th><input type="checkbox" class="input" ng-model="selectall" ng-click="toggleselectall()"></th>
+        <th><input type="checkbox" class="input" ng-model="formctrls.selectall" ng-click="toggleselectall()"></th>
         <th></th>
         <th>Object</th>
         <th>Exposure Time</th>
         <th>Filter</th>
         <th>Observation Date</th>
         <th>Filesize</th>
-        <th>Metadata</th>
+        <th>Actions</th>
         </thead>
-        <tr ng-repeat-start="exposure in exposures" ng-click="toggleselectexposure($index)" ng-class="{active: exposure.selected}">
+        <tr ng-repeat-start="exposure in exposures | startFrom:(currentPage-1)*entryLimit | limitTo:entryLimit" ng-click="toggleselectexposure($index)" ng-class="{active: exposure.selected}">
             <td><input type="checkbox" class="input" ng-model="exposure.selected" ng-change="toggleselectexposure($index)"></td>
             <td>
                 <i class="fa fa-fw fa-plus-circle text-info" ng-hide="showdiv;" ng-click="showdiv = true; $event.stopPropagation();"></i>
                 <i class="fa fa-fw fa-minus-circle text-warning" ng-show="showdiv" ng-click="showdiv = false; $event.stopPropagation();"></i>
             </td>
-            <td>{{exposure.name}}</td>
-            <td>{{exposure.header['EXPTIME']}}</td>
-            <td>{{exposure.filter}}</td>
-            <td>{{exposure.header['DATE-OBS']}}</td>
-            <td>{{exposure.size | bytes}}</td>
-            <td><i class="fa fa-fw fa-file text-info" ng-click="infodump($index); $event.stopPropagation();"></i></td>
+            <td>{{exposure.keys['OBJECT'] !== undefined ? exposure.keys['OBJECT'] : exposure.keys['TILENAME']}}</td>
+            <td>{{exposure.keys['EXPTIME']}}</td>
+            <td>{{exposure.keys['FILTER']}}</td>
+            <td>{{exposure.keys['DATE-OBS'] !== undefined ? exposure.keys['DATE-OBS'] : exposure.keys['DATE'] | date}}</td>
+            <td>{{exposure.exposureId.size | bytes}}</td>
+            <td>
+                <i class="fa fa-fw fa-file text-info" ng-click="infodump($index); $event.stopPropagation();"></i>
+                <i class="fa fa-fw fa-download text-info" ng-click="dlImage(exposure.exposureId._id, exposure.exposureId.filename); $event.stopPropagation();"></i>
+                <i class="fa fa-fw fa-ban text-danger" ng-if="user.roles.indexOf('admin')!=-1" ng-click="rmImage(exposure._id); $event.stopPropagation();"></i>
+            </td>
         </tr>
         <tr ng-repeat-end ng-show="showdiv">
             <td colspan="8">
-                <imagexviewer imageids='{{[exposure.id]}}' ixid="{{exposure.id}}" ixheight=500 ng-if="showdiv"></imagexviewer>
+                <imagexviewer imageids='[exposure.exposureId._id]' ixid="{{exposure.exposureId._id}}" ixheight=500 ng-if="showdiv"></imagexviewer>
             </td>
         </tr>
     </table>

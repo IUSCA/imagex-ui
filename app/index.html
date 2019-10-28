@@ -22,8 +22,10 @@
 <div id="wrap" ng-if="$root.activeNav !== 'signin'">
 	<ng-view></ng-view><!-- <ng-view/> will cause route looping-->
 </div>
-<ng-include src="'t/footer.html'" ng-if="$root.activeNav !== 'signin'"></ng-include>
 <ng-view ng-if="$root.activeNav == 'signin'"></ng-view>
+<div class="sca-footer">
+	<ng-include src="'t/footer.html'"></ng-include>
+</div>
 <script src="node_modules/jquery/dist/jquery.min.js"></script><!--bootstrap requires jquery-->
 <script src="node_modules/angular/angular.min.js"></script>
 <script src="node_modules/angular-route/angular-route.min.js"></script>

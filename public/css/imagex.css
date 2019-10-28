@@ -3,6 +3,23 @@
     height: 100%;
 }
 
+.sca-footer {
+    position: fixed;
+    background-color: #eee;
+    right: 0px;
+    bottom: 0px;
+    width: 100%;
+    padding-left: 80px;
+    padding-right: 10px;
+    height: 33px;
+    border-top: 1px solid #ddd;
+}
+
+.footer-text {
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
 .openseadragon
 {
     width: 100%;

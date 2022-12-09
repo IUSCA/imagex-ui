@@ -23,7 +23,7 @@
     "bootstrap": "^3.3.7",
     "bootswatch": "^3.3.7",
     "clone": "^2.1.1",
-    "express": "^4.13.4",
+    "express": "^4.17.3",
     "express-jwt": "^6.0.0",
     "font-awesome": "^4.7.0",
     "formidable": "^1.1.1",
